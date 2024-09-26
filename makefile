@@ -8,7 +8,7 @@ F_CPU = 20000000UL
 CFLAGS = -mmcu=$(MCU) $(OPT) -I./headers -I /home/bill/avrgcc/ATPACK/include
 CFLAGS += -B /home/bill/avrgcc/ATPACK/gcc/dev/$(MCU) -DF_CPU=$(F_CPU)
 #source files
-SRCS = main.c twi.c functions.c usart.c
+SRCS = main.c twi.c functions.c usart.c timers.c
 
 #object files
 OBJS = $(SRCS:.c=.o)
@@ -42,7 +42,7 @@ hex: $(TARGET)
 #flash hex using pymcuprog
 flash: hex
 	pymcuprog write -t uart -d $(MCU) -u $(UART_PORT) -f output.hex --erase --verify
-	rm -f $(OBJS) $(TARGET) output.hex
+	#rm -f $(OBJS) $(TARGET) output.hex
 #clean build directory
 clean:
 	rm -f $(OBJS) $(TARGET) output.hex

@@ -7,6 +7,7 @@ void inits() {
 	TWI_initHost();
 	USART0_init();
 	PORT_init();
+	RTC_init();
 }
 
 void delayms(int ms){
@@ -16,13 +17,13 @@ void delayms(int ms){
 	}
 }
 
-char nibbleToHex(uint8_t data){
+char nibbleToHex(uint8_t data){ //turns integer nibble to ascii hex digit
   data &= 0xF;
   if (data < 0xA) {return 0x30 + data;} //digits 0x0-9
   else return 0x37 + data; //digits 0xA-F
 }
 
-uint8_t hexToNibble(char hex){
+uint8_t hexToNibble(char hex){ //turns ascii hex digit to integer nibble
   if ( (hex < 0x3A) && (hex > 0x2F) ) {return hex - 0x30;} //0x0-9
   else if ( (hex < 0x47) && (hex > 0x40) ) {return hex - 0x37;}//0xA-F
   else {return 'H';}

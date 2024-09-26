@@ -3,23 +3,26 @@
 #include "functions.h"
 #include "usart.h"
 #include "globals.h"
+#include "timers.h"
 #include <util/delay.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <avr/interrupt.h>
 
 
 int main(){
-
+	sei(); //global interrupts
 	inits();
 	USART0_flush();
 	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, 0); //No prescaler, 20 MHz clock
 	char message[5] = {'\n','\n','\n','\n','\n'};
 	int angle = 0;
+	while(1);
 	while(1){
 		PORTC.OUTSET = (1<<2);
-		delayms(60);
+		delayms(200);
 		PORTC.OUTCLR = (1<<2);
-		delayms(60);
+		delayms(200);
 		TWI_sendAndReadBytes(0x36, 0x0E, TWI_BUFF, TWI_LEN);
 		for (uint8_t i = 0; i < TWI_LEN; i++) {
 			//message[i] = nibbleToHex(TWI_BUFF[i]);
@@ -31,8 +34,14 @@ int main(){
 		PORTB.OUTTGL = PIN4_bm;
 		//USART0_send('\n');
 	}
+
 	return 0;
 }
 
 
 
+
+ISR(RTC_PIT_vect){
+	RTC.PITINTFLAGS = 0x1; //clear interrupt flag
+	PORTC.OUTTGL = (1<<2);
+}
