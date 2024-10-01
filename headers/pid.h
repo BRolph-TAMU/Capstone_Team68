@@ -8,9 +8,9 @@ typedef struct {
 	uint8_t kd;
 	int16_t prev_err;
 	int32_t integral;
-} PIDctrl;
+} PID;
 
-void PID_init(PIDctrl *pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint);
+void PID_init(PID *pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint);
 
-int16_t PID_compute(PIDCTRL *pid, int16_t actual);
+int16_t PID_compute(PID *pid, int16_t actual);
 #endif
