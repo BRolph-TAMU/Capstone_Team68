@@ -10,7 +10,11 @@ typedef struct {
 	int32_t integral;
 } PID;
 
-void PID_init(PID *pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint);
+void PID_init(PID* pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint);
 
-int16_t PID_compute(PID *pid, int16_t actual);
+int16_t PID_compute(PID* pid, int16_t actual);
+
+extern PID panPID;
+extern PID tiltPID;
+
 #endif

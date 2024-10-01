@@ -1,5 +1,7 @@
 #include "functions.h"
 #include "globals.h"
+#include "pid.h"
+#include "twi.h"
 #include <util/delay.h>
 #define F_CPU = 20000000UL
 
@@ -8,6 +10,7 @@ void inits() {
   USART0_init();
   PORT_init();
   RTC_init();
+  TC_init();
 }
 
 void delayms(int ms){
@@ -32,27 +35,29 @@ uint8_t hexToNibble(char hex){ //turns ascii hex digit to integer nibble
 
 void PORT_init() {
   PORTC.DIRSET = (1<<2); //LED
-  PORTB.DIRSET = PIN4_bm | PIN5_bm; //twi pins
-  PORTB.OUTCLR = PIN4_bm | PIN5_bm;
+  PORTB.DIRSET = PIN0_bm | PIN1_bm; //twi pins
+  PORTB.OUTCLR = PIN0_bm | PIN1_bm;
   PORTC.DIRSET = PIN0_bm | PIN1_bm; //pins for i2c device selection
   PORTC.OUTSET = PIN0_bm | PIN1_bm; //pins high = device disabled
 }
 
 uint16_t getCommand(){
   USART0_read();
+  uint8_t axis = hexToNibble(USART0_BUFF[1]);
+  uint16_t value = hexToNibble(USART0_BUFF[2]<<8 + hexToNibble(USART0_BUFF[3]));
   switch (USART0_BUFF[0]){
     case 'P':
-      setProportional();
+      setProportional(axis, value);
       break;
     case 'I':
-      setIntegral();
+      setIntegral(axis, value);
       break;
     case 'D':
-      setDerivative();
+      setDerivative(axis, value);
       break;
     case 'R':
       //second char of read command selects sensor
-      return readPos(hexToNibble(USART0_BUFF[1]));
+      return readPos(axis);
       break;
     default:
       USART0_sendString("Error\n", 7);
@@ -62,15 +67,16 @@ uint16_t getCommand(){
 }
 
 uint16_t readPos(uint8_t sensor){
-  if (sensor == PAN_SNSR){
+  if (sensor == PAN){
     PORTC.DIRCLR = PIN0_bm;
     PORTC.DIRSET = PIN1_bm;
     PORTC.OUTSET = PIN1_bm;
   }
-  if (sensor == TILT_SNSR){
+  if (sensor == TILT){
     PORTC.DIRCLR = PIN1_bm;
     PORTC.DIRSET = PIN0_bm;
     PORTC.OUTSET = PIN0_bm;
+  }
   uint16_t angle = 0;
   TWI_sendAndReadBytes(0x36, 0x0E, TWI_BUFF, TWI_LEN);
   for (uint8_t i = 0; i < TWI_LEN; i++) {
@@ -79,6 +85,19 @@ uint16_t readPos(uint8_t sensor){
   return angle;
 }
 
-void setProportional(){
-   
+void setProportional(uint8_t axis, uint16_t val){
+  val &= 0xFF; //limit to byte only
+  if (axis == PAN){panPID.kp = val;}
+  if (axis == TILT){tiltPID.kp = val;}
+}
+
+void setIntegral(uint8_t axis, uint16_t val){
+  val &= 0xFF; //limit to byte only
+  if (axis == PAN){panPID.ki = val;}
+  if (axis == TILT){tiltPID.ki = val;}
+}
+void setDerivative(uint8_t axis, uint16_t val){
+  val &= 0xFF; //limit to byte only
+  if (axis == PAN){panPID.kd = val;}
+  if (axis == TILT){tiltPID.kd = val;}
 }

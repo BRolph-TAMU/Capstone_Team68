@@ -7,10 +7,11 @@
 #define TWI_LEN 2
 #define USART0_BAUD_RATE(BAUD_RATE) ((float)(F_CPU * 64 / (16 * (float)BAUD_RATE)) + 0.5)
 
-#define PAN_SNSR 0
-#define TILT_SNSR 1
+#define PAN 0
+#define TILT 1
 
 char USART0_BUFF[USART_LEN];
 uint8_t TWI_BUFF[TWI_LEN];
+
 
 #endif

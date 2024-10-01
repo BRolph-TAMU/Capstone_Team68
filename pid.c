@@ -2,6 +2,9 @@
 #include "pid.h"
 #include "globals.h"
 
+
+
+
 void PID_init(PID *pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint){
 	pid->kp = kp;
 	pid->ki = ki;
@@ -20,7 +23,7 @@ int16_t PID_compute(PID* pid, int16_t actual){
 	pid->integral += error>>2;
 	if (pid->integral > 65535) {pid->integral = 65535;}
 	if (pid->integral < -65535) {pid->integral = -65535;}
-	int32_t Iout = integral * pid->ki;
+	int32_t Iout = pid->integral * pid->ki;
 	
 	int32_t Dout = (error - pid->prev_err) * pid->kd;
 	

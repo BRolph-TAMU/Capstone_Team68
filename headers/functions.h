@@ -9,8 +9,9 @@ char nibbleToHex(uint8_t data);
 uint8_t hexToNibble(char hex);
 void PORT_init(void);
 uint16_t getCommand(void);
-void setProportional(void);
-void setDerivative(void);
-void setIntegral(void);
+void setProportional(uint8_t axis, uint16_t val);
+void setDerivative(uint8_t axis, uint16_t val);
+void setIntegral(uint8_t axis, uint16_t val);
 uint16_t readPos(uint8_t sensor);
+
 #endif
