@@ -33,8 +33,10 @@ void USART0_sendString(char* str, uint8_t len){
 			break;
 		}
 		USART0_send(str[i]);
-		if (str[i]=='\n') {break;}
-		
+		if (str[i]=='\n') {
+			//USART0_send('\n');
+			break;
+		}
 	}
 }
 	

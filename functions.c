@@ -3,6 +3,9 @@
 #include "pid.h"
 #include "twi.h"
 #include <util/delay.h>
+#include <stdlib.h>
+#include <avr/io.h>
+#include <math.h>
 #define F_CPU = 20000000UL
 
 void inits() {
@@ -13,12 +16,28 @@ void inits() {
   TC_init();
 }
 
-void delayms(int ms){
+void delayms(uint16_t ms){
   while(ms){
     _delay_ms(1);
     ms--;
   }
 }
+
+void motorSet(int16_t velocity, uint8_t dir){
+  if (velocity > 255) {velocity = 255;}
+  if (velocity < -255) {velocity = -255;}
+  if ((velocity > 0) ^ dir) {
+    PORTC.OUTCLR = PIN0_bm;
+    uint8_t speed = abs(velocity);
+    TCA0.SPLIT.LCMP1 = speed;
+  }
+  else {
+    PORTC.OUTSET = PIN0_bm;
+    uint8_t speed = abs(velocity);
+    TCA0.SPLIT.LCMP1 = 0xFF - speed;
+  }
+}
+    
 
 char nibbleToHex(uint8_t data){ //turns integer nibble to ascii hex digit
   data &= 0xF; //last 4 bits only
@@ -33,6 +52,22 @@ uint8_t hexToNibble(char hex){ //turns ascii hex digit to integer nibble
   else {return 'H';}
 }
 
+uint8_t intToHexChar(char* buffer, int32_t input){
+  uint8_t index = 8;
+  uint8_t temp = 0;
+  //char* buffer = (char*)malloc(9*sizeof(char));
+  if (buffer != NULL){
+    buffer[8] = '\n';
+    while (index != 0) {
+      index--;
+      buffer[index] = nibbleToHex(input & 0xF);
+      input = input >> 4;
+    }
+  }
+  return 0;
+}
+  
+
 void PORT_init() {
   PORTC.DIRSET = (1<<2); //LED
   PORTB.DIRSET = PIN0_bm | PIN1_bm; //twi pins
@@ -43,8 +78,9 @@ void PORT_init() {
 
 uint16_t getCommand(){
   USART0_read();
-  uint8_t axis = hexToNibble(USART0_BUFF[1]);
-  uint16_t value = hexToNibble(USART0_BUFF[2]<<8 + hexToNibble(USART0_BUFF[3]));
+  //uint8_t axis = hexToNibble(USART0_BUFF[1]);
+  uint8_t axis = PAN; 
+  uint16_t value = hexToNibble(USART0_BUFF[2])<<4 + hexToNibble(USART0_BUFF[3]);
   switch (USART0_BUFF[0]){
     case 'P':
       setProportional(axis, value);
@@ -59,6 +95,8 @@ uint16_t getCommand(){
       //second char of read command selects sensor
       return readPos(axis);
       break;
+    case 'O':
+      setPoint(axis, value);
     default:
       USART0_sendString("Error\n", 7);
       break;
@@ -68,14 +106,14 @@ uint16_t getCommand(){
 
 uint16_t readPos(uint8_t sensor){
   if (sensor == PAN){
-    PORTC.DIRCLR = PIN0_bm;
-    PORTC.DIRSET = PIN1_bm;
-    PORTC.OUTSET = PIN1_bm;
+    //PORTC.DIRCLR = PIN0_bm;
+    //PORTC.DIRSET = PIN1_bm;
+    //PORTC.OUTSET = PIN1_bm;
   }
   if (sensor == TILT){
-    PORTC.DIRCLR = PIN1_bm;
-    PORTC.DIRSET = PIN0_bm;
-    PORTC.OUTSET = PIN0_bm;
+    //PORTC.DIRCLR = PIN1_bm;
+    //PORTC.DIRSET = PIN0_bm;
+    //PORTC.OUTSET = PIN0_bm;
   }
   uint16_t angle = 0;
   TWI_sendAndReadBytes(0x36, 0x0E, TWI_BUFF, TWI_LEN);
@@ -85,19 +123,3 @@ uint16_t readPos(uint8_t sensor){
   return angle;
 }
 
-void setProportional(uint8_t axis, uint16_t val){
-  val &= 0xFF; //limit to byte only
-  if (axis == PAN){panPID.kp = val;}
-  if (axis == TILT){tiltPID.kp = val;}
-}
-
-void setIntegral(uint8_t axis, uint16_t val){
-  val &= 0xFF; //limit to byte only
-  if (axis == PAN){panPID.ki = val;}
-  if (axis == TILT){tiltPID.ki = val;}
-}
-void setDerivative(uint8_t axis, uint16_t val){
-  val &= 0xFF; //limit to byte only
-  if (axis == PAN){panPID.kd = val;}
-  if (axis == TILT){tiltPID.kd = val;}
-}

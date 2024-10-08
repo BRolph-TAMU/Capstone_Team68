@@ -10,6 +10,9 @@
 #define PAN 0
 #define TILT 1
 
+#define PIDIDENT 0
+#define ANGIDENT 1
+
 char USART0_BUFF[USART_LEN];
 uint8_t TWI_BUFF[TWI_LEN];
 
