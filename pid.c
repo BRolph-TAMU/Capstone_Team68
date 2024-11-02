@@ -17,6 +17,7 @@ void PID_init(PID *pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint){
 int32_t PID_compute(PID* pid, int16_t actual){
 	//error range 4096 to -4096; 13 bit                                                                                  
 	int16_t error = actual - pid->setpoint;
+	
 	//Pout range 21 bit
 	int32_t Pout = pid->kp * (int32_t)error;
 	
@@ -54,7 +55,7 @@ void setDerivative(uint8_t axis, uint16_t val){
 
 void setPoint(uint8_t axis, int16_t val){
   val &= 0xFF; //limit to byte only
-  if (axis == PAN){panPID.setpoint = val >> 4;}
+  if (axis == PAN){panPID.setpoint = val << 4;}
   if (axis == TILT){tiltPID.setpoint = val;}
 }
 

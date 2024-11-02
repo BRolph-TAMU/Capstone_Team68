@@ -23,7 +23,7 @@ void delayms(uint16_t ms){
   }
 }
 
-void motorSet(int16_t velocity, uint8_t dir){
+void setPanSpeed(int16_t velocity, uint8_t dir){
   if (velocity > 255) {velocity = 255;}
   if (velocity < -255) {velocity = -255;}
   if ((velocity > 0) ^ dir) {
@@ -37,6 +37,23 @@ void motorSet(int16_t velocity, uint8_t dir){
     TCA0.SPLIT.LCMP1 = 0xFF - speed;
   }
 }
+
+void setPanSpeed(int16_t velocity, uint8_t dir){
+  if (velocity > 255) {velocity = 255;}
+  if (velocity < -255) {velocity = -255;}
+  if ((velocity > 0) ^ dir) {
+    PORTC.OUTCLR = PIN0_bm;
+    uint8_t speed = abs(velocity);
+    TCA0.SPLIT.LCMP1 = speed;
+  }
+  else {
+    PORTC.OUTSET = PIN0_bm;
+    uint8_t speed = abs(velocity);
+    TCA0.SPLIT.LCMP1 = 0xFF - speed;
+  }
+}
+
+
     
 
 char nibbleToHex(uint8_t data){ //turns integer nibble to ascii hex digit
@@ -81,6 +98,9 @@ uint16_t getCommand(){
   //uint8_t axis = hexToNibble(USART0_BUFF[1]);
   uint8_t axis = PAN; 
   uint16_t value = hexToNibble(USART0_BUFF[2])<<4 + hexToNibble(USART0_BUFF[3]);
+  char ident = USART0_BUFF[0];
+  USART0_send(ident);
+  USART0_send('\n');
   switch (USART0_BUFF[0]){
     case 'P':
       setProportional(axis, value);
@@ -97,6 +117,7 @@ uint16_t getCommand(){
       break;
     case 'O':
       setPoint(axis, value);
+      break;
     default:
       USART0_sendString("Error\n", 7);
       break;

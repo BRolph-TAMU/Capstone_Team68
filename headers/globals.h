@@ -13,6 +13,12 @@
 #define PIDIDENT 0
 #define ANGIDENT 1
 
+#define PANPWM PIN4_bm
+#define PANDIR PIN6_bm
+
+#define TILTPWM PIN5_bm
+#define TILTDIR PIN7_bm
+
 char USART0_BUFF[USART_LEN];
 uint8_t TWI_BUFF[TWI_LEN];
 
