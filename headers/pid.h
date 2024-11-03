@@ -8,6 +8,7 @@ typedef struct {
 	uint8_t kd;
 	int16_t prev_err;
 	int32_t integral;
+	int16_t minspeed;
 } PID;
 
 void PID_init(PID* pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint);
@@ -21,4 +22,5 @@ void setProportional(uint8_t axis, uint16_t val);
 void setDerivative(uint8_t axis, uint16_t val);
 void setIntegral(uint8_t axis, uint16_t val);
 void setPoint(uint8_t axis, int16_t val);
+void printParams(uint8_t axis);
 #endif

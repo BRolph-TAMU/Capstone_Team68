@@ -13,11 +13,19 @@
 #define PIDIDENT 0
 #define ANGIDENT 1
 
+//port B
 #define PANPWM PIN4_bm
-#define PANDIR PIN6_bm
-
 #define TILTPWM PIN5_bm
+
+
+//port A
+#define PANDIR PIN6_bm
 #define TILTDIR PIN7_bm
+#define LEDPIN PIN5_bm
+
+//port C
+#define PANEN PIN0_bm
+#define TILTEN PIN1_bm
 
 char USART0_BUFF[USART_LEN];
 uint8_t TWI_BUFF[TWI_LEN];

@@ -10,9 +10,9 @@
 
 void inits() {
   TWI_initHost();
-  USART0_init();
+  //USART0_init();
   PORT_init();
-  RTC_init();
+  //RTC_init();
   TC_init();
 }
 
@@ -24,37 +24,40 @@ void delayms(uint16_t ms){
 }
 
 void setPanSpeed(int16_t velocity, uint8_t dir){
+  //direction set by velocity sign. boolean dir inverts direction
   if (velocity > 255) {velocity = 255;}
   if (velocity < -255) {velocity = -255;}
-  if ((velocity > 0) ^ dir) {
-    PORTC.OUTCLR = PIN0_bm;
-    uint8_t speed = abs(velocity);
-    TCA0.SPLIT.LCMP1 = speed;
-  }
-  else {
-    PORTC.OUTSET = PIN0_bm;
-    uint8_t speed = abs(velocity);
-    TCA0.SPLIT.LCMP1 = 0xFF - speed;
-  }
+  if ((velocity > 0) ^ dir) {PORTA.OUTSET = PANDIR;}
+  else {PORTA.OUTCLR = PANDIR;}
+  uint8_t speed = abs(velocity);
+  TCA0.SPLIT.LCMP1 = speed;
 }
 
-void setPanSpeed(int16_t velocity, uint8_t dir){
+void setTiltSpeed(int16_t velocity, uint8_t dir){
+  //direction set by velocity sign. boolean dir inverts direction
   if (velocity > 255) {velocity = 255;}
   if (velocity < -255) {velocity = -255;}
-  if ((velocity > 0) ^ dir) {
-    PORTC.OUTCLR = PIN0_bm;
-    uint8_t speed = abs(velocity);
-    TCA0.SPLIT.LCMP1 = speed;
-  }
-  else {
-    PORTC.OUTSET = PIN0_bm;
-    uint8_t speed = abs(velocity);
-    TCA0.SPLIT.LCMP1 = 0xFF - speed;
-  }
+  if ((velocity > 0) ^ dir) {PORTA.OUTSET = TILTDIR;}
+  else {PORTA.OUTCLR = TILTDIR;}
+  uint8_t speed = abs(velocity);
+  TCA0.SPLIT.LCMP2 = speed;
 }
 
-
-    
+int16_t findMinSpeed(uint8_t axis){
+  int16_t currentpos = readPos(axis);
+  int16_t velocity = 0;
+  while (abs((int16_t)readPos(axis)-currentpos) < 10) {
+    PORTA.OUTSET = LEDPIN;
+    if (axis == PAN){setPanSpeed(velocity, 0);}
+    if (axis == TILT){setTiltSpeed(velocity, 0);}
+    velocity += 1;
+    delayms(15);
+  }
+  setPanSpeed(0,0);
+  setTiltSpeed(0,0);
+  PORTA.OUTCLR = LEDPIN;
+  return velocity;
+}
 
 char nibbleToHex(uint8_t data){ //turns integer nibble to ascii hex digit
   data &= 0xF; //last 4 bits only
@@ -86,30 +89,34 @@ uint8_t intToHexChar(char* buffer, int32_t input){
   
 
 void PORT_init() {
-  PORTC.DIRSET = (1<<2); //LED
+  PORTA.DIRSET = LEDPIN; //LED
   PORTB.DIRSET = PIN0_bm | PIN1_bm; //twi pins
   PORTB.OUTCLR = PIN0_bm | PIN1_bm;
   PORTC.DIRSET = PIN0_bm | PIN1_bm; //pins for i2c device selection
   PORTC.OUTSET = PIN0_bm | PIN1_bm; //pins high = device disabled
+  PORTA.DIRSET = PANDIR | TILTDIR;
+  PORTB.DIRSET = PANPWM | TILTPWM;
 }
 
 uint16_t getCommand(){
   USART0_read();
-  //uint8_t axis = hexToNibble(USART0_BUFF[1]);
-  uint8_t axis = PAN; 
-  uint16_t value = hexToNibble(USART0_BUFF[2])<<4 + hexToNibble(USART0_BUFF[3]);
+  uint8_t axis = hexToNibble(USART0_BUFF[1]);
+  //uint8_t axis = PAN; 
+  uint16_t value = ( ((uint16_t)hexToNibble(USART0_BUFF[2])<<8)
+		  +  ((uint16_t)hexToNibble(USART0_BUFF[3])<<4)
+		  +  (uint16_t)hexToNibble(USART0_BUFF[4])    );
   char ident = USART0_BUFF[0];
   USART0_send(ident);
   USART0_send('\n');
   switch (USART0_BUFF[0]){
     case 'P':
-      setProportional(axis, value);
+      setProportional(axis, value>>4);
       break;
     case 'I':
-      setIntegral(axis, value);
+      setIntegral(axis, value>>4);
       break;
     case 'D':
-      setDerivative(axis, value);
+      setDerivative(axis, value>>4);
       break;
     case 'R':
       //second char of read command selects sensor
@@ -117,6 +124,12 @@ uint16_t getCommand(){
       break;
     case 'O':
       setPoint(axis, value);
+      break;
+    case 'F':
+      printParams(axis);
+      break;
+    case 'L':
+      PORTA.OUTTGL = LEDPIN;
       break;
     default:
       USART0_sendString("Error\n", 7);
@@ -127,14 +140,14 @@ uint16_t getCommand(){
 
 uint16_t readPos(uint8_t sensor){
   if (sensor == PAN){
-    //PORTC.DIRCLR = PIN0_bm;
-    //PORTC.DIRSET = PIN1_bm;
-    //PORTC.OUTSET = PIN1_bm;
+    PORTC.DIRCLR = PANEN;
+    PORTC.DIRSET = TILTEN;
+    PORTC.OUTSET = TILTEN;
   }
   if (sensor == TILT){
-    //PORTC.DIRCLR = PIN1_bm;
-    //PORTC.DIRSET = PIN0_bm;
-    //PORTC.OUTSET = PIN0_bm;
+    PORTC.DIRCLR = TILTEN;
+    PORTC.DIRSET = PANEN;
+    PORTC.OUTSET = PANEN;
   }
   uint16_t angle = 0;
   TWI_sendAndReadBytes(0x36, 0x0E, TWI_BUFF, TWI_LEN);
@@ -143,4 +156,5 @@ uint16_t readPos(uint8_t sensor){
   }
   return angle;
 }
+
 
