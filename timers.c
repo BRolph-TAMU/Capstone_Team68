@@ -20,3 +20,4 @@ void RTC_init(void) {
 	| RTC_PITEN_bm; //enable periodic interrupt timer
 	RTC.PITINTCTRL = RTC_PI_bm; //enable interrupt
 }
+                         
