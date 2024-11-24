@@ -8,31 +8,34 @@
 #include <math.h>
 #define F_CPU = 20000000UL
 
-void inits() {
-  TWI_initHost();
-  //USART0_init();
-  PORT_init();
-  //RTC_init();
-  TC_init();
+//init function
+void inits() { 
+  TWI_initHost(); //init i2c peripheral
+  PORT_init(); //gpios
+  TC_init(); //timers
 }
 
-void delayms(uint16_t ms){
+//delay function
+void delayms(uint16_t ms){ 
   while(ms){
-    _delay_ms(1);
+    _delay_ms(1); //delay 1 ms
     ms--;
   }
 }
 
+//set speed of pan axis
 void setPanSpeed(int16_t velocity, uint8_t dir){
   //direction set by velocity sign. boolean dir inverts direction
-  if (velocity > 255) {velocity = 255;}
+  if (velocity > 255) {velocity = 255;} //limit checking
   if (velocity < -255) {velocity = -255;}
+  //set direction based on sign of velocity. dir variable inverts the logic
   if ((velocity > 0) ^ dir) {PORTA.OUTSET = PANDIR;}
-  else {PORTA.OUTCLR = PANDIR;}
-  uint8_t speed = abs(velocity);
-  TCA0.SPLIT.LCMP1 = speed;
+  else {PORTA.OUTCLR = PANDIR;} //turn off motors if speed is 0
+  uint8_t speed = abs(velocity); //find motor pwm val
+  TCA0.SPLIT.LCMP1 = speed; //set pwm val
 }
 
+//set speed of tilt axis, works same as pan axis
 void setTiltSpeed(int16_t velocity, uint8_t dir){
   //direction set by velocity sign. boolean dir inverts direction
   if (velocity > 255) {velocity = 255;}
@@ -43,19 +46,21 @@ void setTiltSpeed(int16_t velocity, uint8_t dir){
   TCA0.SPLIT.LCMP2 = speed;
 }
 
+//this function finds the minimum speed required to move the axis
+//doing this reduces hystersis on the motion
+//which makes the pid loop run better
 int16_t findMinSpeed(uint8_t axis){
-  int16_t currentpos = readPos(axis);
-  int16_t velocity = 0;
-  while (abs((int16_t)readPos(axis)-currentpos) < 10) {
-    PORTA.OUTSET = LEDPIN;
-    if (axis == PAN){setPanSpeed(velocity, 0);}
+  int16_t currentpos = (int16_t)readPos(axis); //read axis pos
+  int16_t velocity = 0; //set speed to 0
+  //increase motor speed until the axis moves
+  while (abs((int16_t)readPos(axis)-currentpos) < 10) { //axis moved?
+    if (axis == PAN){setPanSpeed(velocity, 0);} //set speed
     if (axis == TILT){setTiltSpeed(velocity, 0);}
-    velocity += 1;
+    velocity += 1; //increase speed for next loop
     delayms(15);
   }
-  setPanSpeed(0,0);
+  setPanSpeed(0,0); //turn off motors
   setTiltSpeed(0,0);
-  PORTA.OUTCLR = LEDPIN;
   return velocity;
 }
 
@@ -75,7 +80,6 @@ uint8_t hexToNibble(char hex){ //turns ascii hex digit to integer nibble
 uint8_t intToHexChar(char* buffer, int32_t input){
   uint8_t index = 8;
   uint8_t temp = 0;
-  //char* buffer = (char*)malloc(9*sizeof(char));
   if (buffer != NULL){
     buffer[8] = '\n';
     while (index != 0) {
@@ -94,19 +98,19 @@ void PORT_init() {
   PORTB.OUTCLR = PIN0_bm | PIN1_bm;
   PORTC.DIRSET = PIN0_bm | PIN1_bm; //pins for i2c device selection
   PORTC.OUTSET = PIN0_bm | PIN1_bm; //pins high = device disabled
-  PORTA.DIRSET = PANDIR | TILTDIR;
-  PORTB.DIRSET = PANPWM | TILTPWM;
+  PORTA.DIRSET = PANDIR | TILTDIR; //motor direction pins
+  PORTB.DIRSET = PANPWM | TILTPWM; //motor speed pins
 }
 
 uint16_t getCommand(){
   USART0_read();
-  uint8_t axis = hexToNibble(USART0_BUFF[1]);
-  //uint8_t axis = PAN; 
+  uint8_t axis = hexToNibble(USART0_BUFF[1]); //second char selects axis
+  //convert hex chars to integer
   uint16_t value = ( ((uint16_t)hexToNibble(USART0_BUFF[2])<<8)
 		  +  ((uint16_t)hexToNibble(USART0_BUFF[3])<<4)
 		  +  (uint16_t)hexToNibble(USART0_BUFF[4])    );
-  char ident = USART0_BUFF[0];
-  USART0_send(ident);
+  char ident = USART0_BUFF[0]; //command identifier character
+  USART0_send(ident); //repeat back command character
   USART0_send('\n');
   switch (USART0_BUFF[0]){
     case 'P':

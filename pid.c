@@ -18,14 +18,15 @@ void PID_init(PID *pid, uint8_t kp, uint8_t ki, uint8_t kd, int16_t setpoint){
 int32_t PID_compute(PID* pid, int16_t actual){
 	//error range 4096 to -4096; 13 bit                                                                                  
 	int16_t error = actual - pid->setpoint;
-	if (error > 2048) {error -= 4096;}
-	if (error < -2048) {error += 4096;}
+	if (error > 2048) {error -= 4096;} //make the 0-4096 scale wrap around
+	if (error < -2048) {error += 4096;} //more smoothly
 	if (abs(error) <= 4) {return 0;}
 	
 	//Pout range 21 bit
 	int32_t Pout = pid->kp * (int32_t)error;
 	
-	if ((abs(error) < 0x100)) {pid->integral += (error>>1);}
+	pid->integral += (error>>1);
+	if ((abs(error) > 0x200)) {pid->integral = 0;}
 
 	if (pid->integral > 4096) {pid->integral = 4096;}
 	if (pid->integral < -4096) {pid->integral = -4096;}
@@ -38,8 +39,8 @@ int32_t PID_compute(PID* pid, int16_t actual){
 	if (out > 8388607) {out = 8388607;} //2^23 - 1
 	if (out < -8388608) {out = -8388608;} //-2^23
 	if (out == 0) {return 0;}
-	if (out > 0) return (out >> 8) + pid->minspeed-0x0;
-	return (out >> 8) - pid->minspeed+0x0;
+	if (out > 0) return (out >> 6) + (pid->minspeed)-0x8;
+	return (out >> 6) - (pid->minspeed)+0x8;
 }
 	
 void setProportional(uint8_t axis, uint16_t val){
